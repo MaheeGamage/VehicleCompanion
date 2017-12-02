@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "824787116976",
+    "firebase_url": "https://vehicle-companion-89249.firebaseio.com",
+    "project_id": "vehicle-companion-89249",
+    "storage_bucket": "vehicle-companion-89249.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:824787116976:android:b85cdc19582dae81",
+        "android_client_info": {
+          "package_name": "com.example.android.vehiclecompanion"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "824787116976-g6psrkr6stuq4gd9i1qmb63mg4pmjjeq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8y5DkBp8WGCPQHAFwwT7c9NbW_YCYAvw"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
