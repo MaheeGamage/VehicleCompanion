@@ -25,6 +25,7 @@ import java.util.Map;
 import com.example.android.vehiclecompanion.app.AppConfig;
 import com.example.android.vehiclecompanion.app.AppController;
 import com.example.android.vehiclecompanion.app.MySingleton;
+import com.example.android.vehiclecompanion.helper.SQLiteHandler;
 import com.example.android.vehiclecompanion.helper.SessionManager;
 import com.example.android.vehiclecompanion.R;
 import com.example.android.vehiclecompanion.model.User;
@@ -37,6 +38,8 @@ import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity {
     private static final String TAG = RegisterActivity.class.getSimpleName();
+
+//    private static final String TAG = "Server Response";
 
     private Button btnLogin;
     private Button btnLinkToRegister;
@@ -127,14 +130,16 @@ public class LoginActivity extends AppCompatActivity {
                         // user successfully logged in
                         // Create login session
 
-                        JSONObject jobj = jObj.getJSONObject("user");
-                        int id = Integer.parseInt(jobj.getString("id"));
-                        String name = jobj.getString("name");
-                        String email = jobj.getString("email");
-                        Boolean owner = (Integer.parseInt(jobj.getString("owner")) > 0);
+                        JSONObject userObj = jObj.getJSONObject("user");
+                        int id = jObj.getInt("id");
+                        String name = userObj.getString("name");
+                        String email = userObj.getString("email");
+                        Boolean owner = (Integer.parseInt(userObj.getString("owner")) > 0);
+                        String phone_no = userObj.getString("phone_no");
 
-                        User user = new User(id,name,owner,email);
+                        JSONObject vehicleObj = jObj.getJSONObject("vehicle");
 
+                        User user = new User(id,name,owner,email,phone_no);
                         session.setLogin(true,user);
 
                         // Launch main activity
@@ -150,7 +155,8 @@ public class LoginActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     // JSON error
                     e.printStackTrace();
-                    Toast.makeText(getApplicationContext(), "Json error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+//                    Toast.makeText(getApplicationContext(), "Json error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Log.d(TAG, "Login Response: " + e.getMessage());
                 }
 
             }
@@ -169,8 +175,8 @@ public class LoginActivity extends AppCompatActivity {
             protected Map<String, String> getParams() {
                 // Posting parameters to login url
                 Map<String, String> params = new HashMap<String, String>();
-                params.put("txtUsername", email);
-                params.put("txtPassword", password);
+                params.put("email", email);
+                params.put("password", password);
                 return params;
             }
 
