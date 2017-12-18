@@ -2,6 +2,7 @@ package com.example.android.vehiclecompanion.activity;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,6 +16,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -24,11 +26,15 @@ import java.util.Map;
 
 import com.example.android.vehiclecompanion.app.AppConfig;
 import com.example.android.vehiclecompanion.app.AppController;
+import com.example.android.vehiclecompanion.app.Config;
 import com.example.android.vehiclecompanion.app.MySingleton;
 import com.example.android.vehiclecompanion.helper.SQLiteHandler;
 import com.example.android.vehiclecompanion.helper.SessionManager;
 import com.example.android.vehiclecompanion.R;
+import com.example.android.vehiclecompanion.model.Branch;
+import com.example.android.vehiclecompanion.model.Document;
 import com.example.android.vehiclecompanion.model.User;
+import com.example.android.vehiclecompanion.model.Vehicle;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -47,6 +53,10 @@ public class LoginActivity extends AppCompatActivity {
     private EditText inputPassword;
     private ProgressDialog pDialog;
     private SessionManager session;
+
+    String firebase_regId;
+
+    SQLiteHandler db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,6 +120,11 @@ public class LoginActivity extends AppCompatActivity {
         // Tag used to cancel the request
         String tag_string_req = "req_login";
 
+        SharedPreferences pref = getApplicationContext().getSharedPreferences(Config.SHARED_PREF, 0);
+        firebase_regId = pref.getString("regId", null);
+
+
+
         pDialog.setMessage("Logging in ...");
         showDialog();
 
@@ -118,7 +133,7 @@ public class LoginActivity extends AppCompatActivity {
 
             @Override
             public void onResponse(String response) {
-                Log.d(TAG, "Login Response: " + response.toString());
+                Log.d(TAG, "Login Response: " + response);
                 hideDialog();
 
                 try {
@@ -137,10 +152,37 @@ public class LoginActivity extends AppCompatActivity {
                         Boolean owner = (Integer.parseInt(userObj.getString("owner")) > 0);
                         String phone_no = userObj.getString("phone_no");
 
-                        JSONObject vehicleObj = jObj.getJSONObject("vehicle");
+                        JSONArray jarr = new JSONArray(jObj.getString("selected_user"));
 
-                        User user = new User(id,name,owner,email,phone_no);
-                        session.setLogin(true,user);
+                        for(int i=0;i<jarr.length();i++) {
+                            JSONObject obj = jarr.getJSONObject(i);
+                            User suser = new User();
+                            suser.setId(obj.getInt("id"));
+                            suser.setEmail(obj.getString("email"));
+
+                            db = new SQLiteHandler(getApplicationContext());
+                            db.addSelcetedUser(suser);
+                        }
+
+                        if(userObj.getInt("owner")==1) {
+                            JSONObject vehicleObj = jObj.getJSONObject("vehicle");
+                            Vehicle vehicle = new Vehicle(vehicleObj.getInt("id"), vehicleObj.getString("model"), vehicleObj.getString("reg_no"));
+
+                            JSONObject licenseObj = jObj.getJSONObject("license");
+                            Document license = new Document(licenseObj.getInt("id"), licenseObj.getString("expiry_date"), 1);
+
+                            JSONObject insuranceObj = jObj.getJSONObject("insurance");
+                            Document insurance = new Document(insuranceObj.getInt("id"), insuranceObj.getString("expiry_date"), 2);
+
+
+
+                            Log.d(TAG, "Insurance exp: " + insurance.getExpiry_date());
+
+                            session.setLogin(true, vehicle, license, insurance);
+                        }
+
+                            User user = new User(id, name, owner, email, phone_no);
+                            session.setLogin(true, user);
 
                         // Launch main activity
                         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
@@ -177,6 +219,7 @@ public class LoginActivity extends AppCompatActivity {
                 Map<String, String> params = new HashMap<String, String>();
                 params.put("email", email);
                 params.put("password", password);
+                params.put("fid", firebase_regId);
                 return params;
             }
 

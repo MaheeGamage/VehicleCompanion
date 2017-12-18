@@ -17,6 +17,7 @@ import com.android.volley.toolbox.StringRequest;
 import com.example.android.vehiclecompanion.R;
 import com.example.android.vehiclecompanion.app.AppConfig;
 import com.example.android.vehiclecompanion.app.AppController;
+import com.example.android.vehiclecompanion.app.MySingleton;
 import com.example.android.vehiclecompanion.helper.SQLiteHandler;
 import com.example.android.vehiclecompanion.helper.SessionManager;
 
@@ -160,7 +161,7 @@ public class RegisterActivity extends AppCompatActivity {
                 // Posting params to register url
                 Map<String, String> params = new HashMap<String, String>();
                 params.put("name", name);
-                params.put("phone", phone);
+                params.put("phone_no", phone);
                 params.put("email", email);
                 params.put("password", password);
 
@@ -170,7 +171,8 @@ public class RegisterActivity extends AppCompatActivity {
         };
 
         // Adding request to request queue
-        AppController.getInstance().addToRequestQueue(strReq, tag_string_req);
+//        AppController.getInstance().addToRequestQueue(strReq, tag_string_req);
+        MySingleton.getInstance(getApplicationContext()).addToRequestQueue(strReq);
     }
 
     private void showDialog() {

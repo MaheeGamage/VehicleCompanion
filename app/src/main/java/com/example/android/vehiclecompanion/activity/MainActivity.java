@@ -27,12 +27,15 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.android.vehiclecompanion.R;
 import com.example.android.vehiclecompanion.TestActivity;
 import com.example.android.vehiclecompanion.app.Config;
+import com.example.android.vehiclecompanion.helper.SQLiteHandler;
 import com.example.android.vehiclecompanion.helper.SessionManager;
+import com.example.android.vehiclecompanion.model.User;
 import com.example.android.vehiclecompanion.util.NotificationUtils;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
@@ -47,12 +50,15 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import android.view.View.OnClickListener;
+
+import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity
         implements ConnectionCallbacks, OnConnectionFailedListener, LocationListener, NavigationView.OnNavigationItemSelectedListener {
 
     Button btnActivityService, btnActivityBreakdown,btnLastParkedLocation/*,btnTest,btnTest2*/;
+    TextView txtVehicleModel,txtVehicleRegNo,navUserName,navUserEmail, txtLicenseExpiryDate, txtInsuranceExpiryDate;
 
     //For Firebase
     private BroadcastReceiver mRegistrationBroadcastReceiver;
@@ -64,6 +70,8 @@ public class MainActivity extends AppCompatActivity
     private static final int REQUEST_PERMISSION_SETTING = 101;
     private boolean sentToSettings = false;
     private SharedPreferences permissionStatus;
+
+    SQLiteHandler db;
 
 /*********************************  Location *********************************/
     // LogCat tag
@@ -102,12 +110,19 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+        View headerView = navigationView.getHeaderView(0);
+
+        navUserName = (TextView) headerView.findViewById(R.id.navUserName);
+        navUserEmail = (TextView) headerView.findViewById(R.id.navUserEmail);
+
+        txtVehicleModel = findViewById(R.id.txtVehicleModel);
+        txtVehicleRegNo = findViewById(R.id.txtVehicleRegNo);
+        txtLicenseExpiryDate = findViewById(R.id.txtLicenseExpiryDate);
+        txtInsuranceExpiryDate = findViewById(R.id.txtInsuranceExpiryDate);
 
         btnActivityService = (Button)findViewById(R.id.btnActivityService);
         btnActivityBreakdown = (Button)findViewById(R.id.btnActivityBreakdown);
         btnLastParkedLocation = (Button)findViewById(R.id.btnLastParked);
-//        btnTest = (Button)findViewById(R.id.btnTest);
-//        btnTest2 = (Button)findViewById(R.id.btnTest2);
 
         //for Location Permission
         permissionStatus = getSharedPreferences("permissionStatus",MODE_PRIVATE);
@@ -177,6 +192,16 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
+/********************************   UI    *********************************************/
+
+    navUserEmail.setText(session.getUserEmail());
+    navUserName.setText(session.getUserName());
+
+    txtVehicleModel.setText(session.getVehicleModel());
+    txtVehicleRegNo.setText(session.getVehicleRegNo());
+    txtLicenseExpiryDate.setText(session.getLicenseExpiryDate());
+    txtInsuranceExpiryDate.setText(session.getInsuranceExpiryDate());
+
     }
 
     @Override
@@ -228,11 +253,16 @@ public class MainActivity extends AppCompatActivity
         } else if (id == R.id.nav_offers) {
 
         } else if (id == R.id.nav_setting) {
+            Intent intent = new Intent(getApplicationContext(), SettingsActivity.class);
+            startActivity(intent);
 
         } else if (id == R.id.nav_test) {
             Intent intent = new Intent(getApplicationContext(), TestActivity.class);
             startActivity(intent);
+        } else if (id == R.id.nav_logout) {
+            logoutUser();
         }
+
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -283,7 +313,7 @@ public class MainActivity extends AppCompatActivity
             double longitude = mLastLocation.getLongitude();
 
 //            lblLocation.setText(latitude + ", " + longitude);
-            Toast.makeText(this,latitude + ", " + longitude,Toast.LENGTH_LONG).show();
+//            Toast.makeText(this,latitude + ", " + longitude,Toast.LENGTH_LONG).show();
 
             Intent intent = new Intent(getApplicationContext(), ServiceAppointmentActivity.class);
             intent.putExtra("lat",latitude);
@@ -309,7 +339,7 @@ public class MainActivity extends AppCompatActivity
             double longitude = mLastLocation.getLongitude();
 
 //            lblLocation.setText(latitude + ", " + longitude);
-            Toast.makeText(this,latitude + ", " + longitude,Toast.LENGTH_LONG).show();
+//            Toast.makeText(this,latitude + ", " + longitude,Toast.LENGTH_LONG).show();
 
             Intent intent = new Intent(getApplicationContext(), BreakdownServiceLocationMapsActivity.class);
             intent.putExtra("lat",latitude);
@@ -349,7 +379,7 @@ public class MainActivity extends AppCompatActivity
                 Toast.makeText(getApplicationContext(),"Last Parked Location is " + lat+" "+lng ,Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
 
-                String uri = String.format(Locale.ENGLISH, "geo:%f,%f", Float.parseFloat(lat), Float.parseFloat(lng));
+                String uri = String.format(Locale.ENGLISH, "geo:%f,%f?q=%f,%f", Float.parseFloat(lat), Float.parseFloat(lng), Float.parseFloat(lat), Float.parseFloat(lng));
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
                 startActivity(intent);
             }
@@ -369,7 +399,11 @@ public class MainActivity extends AppCompatActivity
 
 
     private void logoutUser() {
-        session.setLogin(false, null);
+
+        db = new SQLiteHandler(getApplicationContext());
+        db.deleteAllSelectedUser();
+//        session.setLogin(false);
+        session.removeAll();
 
         // Launching the login activity
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
@@ -395,7 +429,6 @@ public class MainActivity extends AppCompatActivity
         // Resuming the periodic location updates
         if (mGoogleApiClient.isConnected() && mRequestingLocationUpdates) {
 //            startLocationUpdates();
-
         }
 
         // register GCM registration complete receiver
@@ -495,7 +528,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void startPeriodicLocationUpdates() {
-        Toast.makeText(getBaseContext(), "Diske", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(getBaseContext(), "Diske", Toast.LENGTH_SHORT).show();
 
         if (ActivityCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED)

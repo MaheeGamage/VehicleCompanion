@@ -14,6 +14,13 @@ public class User {
     // Empty constructor
     public User(){
     }
+
+    // constructor
+    public User(int id ,String email){
+        this.id = id;
+        this.email = email;
+    }
+
     // constructor
     public User(String name, boolean owner, String phone_no, String email){
         this.name = name;
@@ -23,11 +30,11 @@ public class User {
     }
 
     // constructor
-    public User(int id, String name, boolean owner,  String email){
+    public User(int id, String name, boolean owner,  String email, String phone_no){
         this.id = id;
         this.name = name;
         this.owner = owner;
-        this.phone_no = "0";
+        this.phone_no = phone_no;
         this.email = email;
     }
 

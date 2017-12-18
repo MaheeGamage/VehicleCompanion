@@ -15,6 +15,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.StringRequest;
 import com.example.android.vehiclecompanion.R;
+import com.example.android.vehiclecompanion.app.AppConfig;
 import com.example.android.vehiclecompanion.app.MySingleton;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -97,7 +98,7 @@ public class BreakdownServiceLocationMapsActivity extends FragmentActivity imple
     public void fetchLocations(){
 
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST,url3, new Response.Listener<String>() {
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, AppConfig.URL_SERVICE, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 Log.d(TAG, response);
@@ -110,8 +111,10 @@ public class BreakdownServiceLocationMapsActivity extends FragmentActivity imple
                         JSONObject obj = jarr.getJSONObject(i);
                         LatLng latLng = new LatLng(obj.getDouble("latitude"), obj.getDouble("longitude"));
                         mMap.addMarker(new MarkerOptions()
-//                                .icon(BitmapDescriptorFactory.fromBitmap(resizeBitmap("branch_icon",72,64)))
-                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                                .icon(BitmapDescriptorFactory.fromBitmap(resizeBitmap("map_marker_toyota",108,96)))
+//                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+//                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.))
+                                .title(obj.getString("name"))
                                 .position(latLng));
                     }
 

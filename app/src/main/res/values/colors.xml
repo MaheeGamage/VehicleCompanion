@@ -12,4 +12,6 @@
     <color name="list_row_hover_end_color">#ebeef0</color>
     <color name="breakdown_btn_color">#c80303</color>
     <color name="breakdown_btn_text_color">#ffffff</color>
+    <color name="emphasis">#31b6e7</color>
+    <color name="bg_gray">#cecbce</color>
 </resources>

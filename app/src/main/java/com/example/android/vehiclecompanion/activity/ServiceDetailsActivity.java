@@ -19,7 +19,6 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -27,11 +26,9 @@ import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.StringRequest;
 import com.example.android.vehiclecompanion.R;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -41,6 +38,8 @@ import java.util.jar.Attributes;
 
 import android.support.v7.app.AlertDialog;
 
+import com.example.android.vehiclecompanion.app.AppConfig;
+import com.example.android.vehiclecompanion.helper.SessionManager;
 import com.example.android.vehiclecompanion.model.Branch;
 import com.example.android.vehiclecompanion.app.MySingleton;
 
@@ -56,7 +55,7 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
 
     //Time & Date
     private int time,timeReceived;
-    private Integer timeSelected;
+    private Integer timeSelected = 0;
     AlertDialog alertDialog1;
 
     //For Map
@@ -66,7 +65,7 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
     CharSequence[] values = {"AM","PM"};
 
     final String TAG = this.getClass().getSimpleName();
-    TextView txtName,txtType;
+    TextView txtName,txtLocation;
     Button btnConfirmService,btnGetLocation,btnSelectDate;
 
     String url = "https://vehicle-companion.000webhostapp.com/Vehicle_Companion/getBranchDetails.php";
@@ -74,7 +73,9 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
     String url3 = "https://vehicle-companion.000webhostapp.com/Vehicle_Companion/AppointmentTime.json";
 
     //For Confirm Data
-    String Package,centerName,Date,Id, branchName, branchLocation, sqlDate;
+    String Package, Date,Id, branchName, branchLocation, sqlDate = "", appTime, packageName;
+
+    private SessionManager session;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,6 +90,8 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
         final String lng = bundle.getString("longitude");
         final String location = bundle.getString("location");
 
+        Log.d(TAG, id);
+
         Id = id;
         branchName = name;
         branchLocation = location;
@@ -96,9 +99,13 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
         longitude = Double.parseDouble(lng);
 
         txtName = (TextView)findViewById(R.id.txtBranchName);
+        txtLocation = (TextView)findViewById(R.id.txtBranchLocation);
         btnSelectDate = (Button)findViewById(R.id.btnSelectDate);
         btnConfirmService = (Button)findViewById(R.id.btnConfirmService);
         btnGetLocation = (Button)findViewById(R.id.btnShowLocation);
+
+        txtName.setText(branchName);
+        txtLocation.setText(branchLocation);
 
         //Date Picker
         dateView = (TextView) findViewById(R.id.txtViewDate);
@@ -106,7 +113,9 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
         year = calendar.get(Calendar.YEAR);
         month = calendar.get(Calendar.MONTH);
         day = calendar.get(Calendar.DAY_OF_MONTH);
-//        showDate(year, month+1, day);
+
+        // session manager
+        session = new SessionManager(getApplicationContext());
 
         btnSelectDate.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -118,12 +127,12 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
         btnConfirmService.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!Package.isEmpty() )
-                    Toast.makeText(getApplicationContext(), "Select a Package", Toast.LENGTH_SHORT).show();
-                else if (!sqlDate.isEmpty() )
+//                if (false/*Package != null && !Package.isEmpty()*/)
+//                    Toast.makeText(getApplicationContext(), "Select a Package P:"+Package, Toast.LENGTH_SHORT).show();
+                if (sqlDate == "")
                     Toast.makeText(getApplicationContext(), "Select a Date", Toast.LENGTH_SHORT).show();
                 else if (timeSelected==0)
-                    Toast.makeText(getApplicationContext(), "Select a Package", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Select a Time", Toast.LENGTH_SHORT).show();
                 else
                     confirmService();
             }
@@ -149,7 +158,7 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
         categories.add("Interior Cleaning");
         categories.add("Exterior Cleaning");
         categories.add("Total Cleaning");
-        categories.add("Oil Changing");
+        categories.add("Waxing");
 
         // Creating adapter for spinner
         ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, categories);
@@ -160,12 +169,13 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
         // attaching data adapter to spinner
         spnSelectPackage.setAdapter(dataAdapter);
 
+/*******************************************************************************************************************/
+
     }
 
     @SuppressWarnings("deprecation")
     public void setDate() {
         showDialog(999);
-        Toast.makeText(getApplicationContext(), "ca", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -188,6 +198,7 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
                     // arg3 = day
                     showDate(arg1, arg2+1, arg3);
                     Toast.makeText(getApplicationContext(), arg3+"/"+arg2+"/"+arg1, Toast.LENGTH_SHORT).show();
+                    timeSelected = 0;
                     checkDate();
                 }
             };
@@ -202,7 +213,7 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
         Intent intent = new Intent(ServiceDetailsActivity.this,BranchLocationActivity.class);
         intent.putExtra("lat",latitude.toString());
         intent.putExtra("lng",longitude.toString());
-        intent.putExtra("centerName",centerName);
+        intent.putExtra("centerName",branchName);
         startActivity(intent);
     }
 
@@ -210,30 +221,54 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         // On selecting a spinner item
         String item = parent.getItemAtPosition(position).toString();
+        packageName = item;
 
         // Showing selected spinner item
-        Package = item;
-        Toast.makeText(parent.getContext(), "Selected: " + Package, Toast.LENGTH_LONG).show();
+        if(item.equals("Full Service"))
+            Package = "full";
+        else if(item.equals("Interior Cleaning"))
+            Package = "interior";
+        else if(item.equals("Exterior Cleaning"))
+            Package = "exterior";
+        else if(item.equals("Total Cleaning"))
+            Package = "total";
+        else if(item.equals("Waxing"))
+            Package = "wax";
+
+//        Toast.makeText(parent.getContext(), "Selected: " + Package, Toast.LENGTH_SHORT).show();
     }
+
     public void onNothingSelected(AdapterView<?> arg0) {
         // TODO Auto-generated method stub
     }
 
     public void confirmService(){
+
+        String timeSelectedDisplay = "Not selected";
+        if(timeSelected == 1)
+            timeSelectedDisplay = "8am";
+        else if(timeSelected == 2)
+            timeSelectedDisplay = "12pm";
+
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(ServiceDetailsActivity.this);
 
         // Setting Dialog Title
         alertDialog.setTitle("Confirm Service Appointment");
 
         // Setting Dialog Message
-        alertDialog.setMessage("Service center: " +centerName+"\n"+"Package: " +Package+"\n"+"Date: " +Date+"\n"+"Time: " +timeSelected);
+        alertDialog.setMessage("Service center: " +branchName+"\n"+"Package: " +packageName+"\n"+"Date: " +Date+"\n"+"Time: " +timeSelectedDisplay);
 
         // Setting Positive "Yes" Button
         alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog,int which) {
 
                 // Write your code here to invoke YES event
-                Toast.makeText(getApplicationContext(), "You clicked on YES", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getApplicationContext(), "You clicked on YES", Toast.LENGTH_SHORT).show();
+
+                if(timeSelected == 1)
+                    appTime = "8am";
+                else if(timeSelected == 2)
+                    appTime = "12pm";
 
                 pDialog = new ProgressDialog(ServiceDetailsActivity.this);
 
@@ -241,12 +276,26 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
                 pDialog.setMessage("Loading...");
                 pDialog.show();
 
-                StringRequest stringRequest2 = new StringRequest(Request.Method.POST, url2, new Response.Listener<String>() {
+                StringRequest stringRequest2 = new StringRequest(Request.Method.POST, AppConfig.URL_APPOINTMENT, new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        Log.d(TAG, response);
+                        Log.d("diske2", response);
                         hidePDialog();
-                        Toast.makeText(getApplicationContext(), response, Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(getApplicationContext(), response, Toast.LENGTH_SHORT).show();
+
+                        try {
+                            JSONObject jObj = new JSONObject(response);
+                            boolean error = jObj.getBoolean("error");
+
+                            if(!error){
+                                Toast.makeText(getApplicationContext(), "Appointment successful", Toast.LENGTH_SHORT).show();
+                            }
+                            else
+                                Toast.makeText(getApplicationContext(), jObj.getString("error_msg"), Toast.LENGTH_SHORT).show();
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
 
                     }
                 }, new Response.ErrorListener() {
@@ -261,9 +310,11 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
                     @Override
                     protected Map<String, String> getParams() throws AuthFailureError {
                         Map<String,String> params = new HashMap<>();
-                        params.put("branchId",Id);
                         params.put("type",Package);
-                        params.put("date",Date);
+                        params.put("date",sqlDate);
+                        params.put("time",appTime);
+                        params.put("user_id",String.valueOf(session.getUserId()));
+                        params.put("branch_id",Id);
                         return params;
                     }
                 };
@@ -276,7 +327,7 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
         alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 // Write your code here to invoke NO event
-                Toast.makeText(getApplicationContext(), "You clicked on NO", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getApplicationContext(), "You clicked on NO", Toast.LENGTH_SHORT).show();
                 dialog.cancel();
             }
         });
@@ -295,7 +346,7 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
             public void onClick(DialogInterface dialog, int item) {
                 if(timeReceived == 3){
                     timeSelected = 0;
-                    Toast.makeText(ServiceDetailsActivity.this, "All Day Booked. Select another day", Toast.LENGTH_LONG).show();
+                    Toast.makeText(ServiceDetailsActivity.this, "All Day Booked. Select another day", Toast.LENGTH_SHORT).show();
                 }
                 else {
                     switch (item) {
@@ -304,13 +355,11 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
                             break;
                         case 1:
                             timeSelected = 2;
-                            Toast.makeText(ServiceDetailsActivity.this, "Second Item Clicked", Toast.LENGTH_LONG).show();
                             break;
                     }
-
                     if(timeSelected == timeReceived) {
                         alertDialog1.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false); //BUTTON1 is positive button
-                        Toast.makeText(ServiceDetailsActivity.this, "That time booked. Select another Time", Toast.LENGTH_LONG).show();
+                        Toast.makeText(ServiceDetailsActivity.this, "That time booked. Select another Time", Toast.LENGTH_SHORT).show();
                     }
                     else
                         alertDialog1.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true); //BUTTON1 is positive button
@@ -321,10 +370,10 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
 
         builder.setPositiveButton("Select", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface arg0, int arg1) {
-                if(timeSelected == 1)
-                    Toast.makeText(ServiceDetailsActivity.this, "8am - 12pm Clicked", Toast.LENGTH_LONG).show();
-                if(timeSelected == 2)
-                    Toast.makeText(ServiceDetailsActivity.this, "12pm - 4pm Clicked", Toast.LENGTH_LONG).show();
+                if(timeSelected == 1);
+//                    Toast.makeText(ServiceDetailsActivity.this, "8am - 12pm Clicked", Toast.LENGTH_LONG).show();
+                if(timeSelected == 2);
+//                    Toast.makeText(ServiceDetailsActivity.this, "12pm - 4pm Clicked", Toast.LENGTH_LONG).show();
                 //DO TASK
             }
         });
@@ -341,7 +390,7 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
         alertDialog1.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false); //BUTTON1 is positive button
 
         if(timeReceived == 3) {
-            Toast.makeText(ServiceDetailsActivity.this, "All Day Booked. Select another day", Toast.LENGTH_LONG).show();
+            Toast.makeText(ServiceDetailsActivity.this, "All Day Booked. Select another day", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -352,27 +401,40 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
         pDialog.setMessage("Loading...");
         pDialog.show();
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST,url3, new Response.Listener<String>() {
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, AppConfig.URL_CHECK_TIME, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
-                Log.d(TAG, response);
+                Log.d("diske1", response);
                 hidePDialog();
 //                ToastEasy(response);
                 try {
                     JSONObject object = new JSONObject(response);
-                    if(object.getString("am").equals("1") && object.getString("pm").equals("1"))
-                        timeReceived = 3;
-                    else if(object.getString("am").equals("1"))
-                        timeReceived = 1;
-                    else if(object.getString("pm").equals("1"))
-                        timeReceived = 2;
-                    else
-                        timeReceived = 0;
+                    boolean error = object.getBoolean("error");
+
+                    // Check for error node in json
+                    if (!error) {
+
+                        timeReceived = object.getInt("time");
+//                    if(object.getString("am").equals("1") && object.getString("pm").equals("1"))
+//                        timeReceived = 3;
+//                    else if(object.getString("am").equals("1"))
+//                        timeReceived = 1;
+//                    else if(object.getString("pm").equals("1"))
+//                        timeReceived = 2;
+//                    else
+//                        timeReceived = 0;
+                    }
+                    else {
+                        // Error in login. Get the error message
+                        String errorMsg = object.getString("error_msg");
+                        Toast.makeText(getApplicationContext(),
+                                errorMsg, Toast.LENGTH_LONG).show();
+                    }
 
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                ToastEasy(Integer.toString(timeReceived));
+//                ToastEasy(Integer.toString(timeReceived));
                 if(timeReceived==3)
                     ToastEasy("All Day Booked. Select another day");
                 else
@@ -387,7 +449,18 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
                 Toast.makeText(getApplicationContext(),"Err "+error.getMessage(),Toast.LENGTH_LONG).show();
                 hidePDialog();
             }
-        });
+        }){
+
+            @Override
+            protected Map<String, String> getParams() {
+                // Posting parameters to login url
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("branch_id", Id);
+                params.put("date", sqlDate);
+                return params;
+            }
+
+        };
 
         // Adding request to request queue
         MySingleton.getInstance(getApplicationContext()).addToRequestQueue(stringRequest);
@@ -407,6 +480,6 @@ public class ServiceDetailsActivity extends AppCompatActivity implements OnItemS
     }
 
     public void ToastEasy(String s){
-        Toast.makeText(ServiceDetailsActivity.this, s, Toast.LENGTH_LONG).show();
+        Toast.makeText(ServiceDetailsActivity.this, s, Toast.LENGTH_SHORT).show();
     }
 }

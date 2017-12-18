@@ -126,7 +126,7 @@ public class TestActivity extends AppCompatActivity {
             protected Map<String, String> getParams() throws AuthFailureError {
                 Map<String,String> params = new HashMap<>();
                 params.put("title","Android Test");
-                params.put("message","jhbasdj");
+                params.put("message","Android test message for All");
                 params.put("push_type","topic");
                 return params;
             }

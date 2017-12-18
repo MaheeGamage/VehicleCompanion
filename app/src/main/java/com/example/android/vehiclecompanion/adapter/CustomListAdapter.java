@@ -57,7 +57,7 @@ public class CustomListAdapter extends BaseAdapter {
 		title.setText(b.getName());
 
 		// location
-		location.setText(b.getName());
+		location.setText(b.getLocation());
 
 		return convertView;
 	}

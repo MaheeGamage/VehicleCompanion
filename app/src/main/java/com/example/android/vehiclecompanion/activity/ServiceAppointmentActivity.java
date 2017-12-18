@@ -20,6 +20,7 @@ import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.StringRequest;
 import com.example.android.vehiclecompanion.R;
 import com.example.android.vehiclecompanion.adapter.CustomListAdapter;
+import com.example.android.vehiclecompanion.app.AppConfig;
 import com.example.android.vehiclecompanion.app.MySingleton;
 import com.example.android.vehiclecompanion.model.Branch;
 
@@ -74,7 +75,7 @@ public class ServiceAppointmentActivity extends AppCompatActivity {
 //        getActionBar().setBackgroundDrawable(
 //                new ColorDrawable(Color.parseColor("#1b1b1b")));
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST,url3, new Response.Listener<String>() {
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, AppConfig.URL_SERVICE, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 Log.d(TAG, response);
@@ -96,6 +97,7 @@ public class ServiceAppointmentActivity extends AppCompatActivity {
 
                 } catch (Throwable tx) {
                     Log.e("My App", "Could not parse malformed JSON: \"" + response + "\"");
+                    Log.e("ERR", tx.getMessage());
                 }
 
                 adapter.notifyDataSetChanged();

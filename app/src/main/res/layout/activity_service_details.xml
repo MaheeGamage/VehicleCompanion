@@ -29,7 +29,8 @@
             android:layout_marginTop="8dp"
             android:text="Service Center Details"
             android:textAlignment="center"
-            android:textSize="24sp" />
+            android:textSize="24sp"
+            android:textColor="@color/cast_libraries_material_featurehighlight_outer_highlight_default_color"/>
 
         <TextView
             android:id="@+id/txtBranchName"
@@ -57,10 +58,11 @@
             android:text="Show Location" />
 
         <View
+            android:id="@+id/sd4"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="8dp"
-            android:background="@android:color/darker_gray" />
+            android:background="@color/cast_libraries_material_featurehighlight_outer_highlight_default_color" />
 
 
     </LinearLayout>
